@@ -47,14 +47,6 @@ inspect(tweets_corpus[4])
 # Stem Completion
 tweets_corpus <- tm_map(tweets_corpus,content_transformer(stemCompletion), dictionary = tweets_corpus_copy)
 
-# Creating Term Document Matrix
-tweets_tdm <- TermDocumentMatrix(tweets_corpus, control = list(wordLengths = c(1,Inf)))
-
-for(i in 1:5) { 
-  cat(paste("[[",i,"]] ",sep = "")) 
-  writeLines(as.character(tweets_corpus[[i]]))
-  }
-
 # Create Term Document Martix
 tweet_tdm <- TermDocumentMatrix(tweets_corpus, control = list(wordLengths = c(1,Inf)))
 tweet_tdm
