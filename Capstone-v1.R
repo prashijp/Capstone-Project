@@ -1,4 +1,4 @@
-data_dir <- "/Users/jeevarehakrishnaraj/Desktop/Springboard/Capstone Project/Capstone" 
+data_dir <- "https://github.com/prashijp/Capstone-Project" 
 twitter_airline <- read.csv(file.path(data_dir,"tweets.csv"),header = TRUE)
 
 # Replace twitter handle with blank 
