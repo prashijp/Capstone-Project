@@ -312,7 +312,7 @@ xlab("Terms") + ylab("Count") + coord_flip()
  # qplot(log(df$term), log(df$freq))
 ```
 
-#### Plot the frequency of the words on linear / log scale .
+#### Plot the frequency of the words on   log scale .
 
 ``` r
 Freq_df <- df
