@@ -719,10 +719,10 @@ summary(anova1)
 
 ``` r
 anova2 <- data.frame(Fitted = fitted(anova1),
-  Residuals = resid(anova1), Treatment = sentiment_variance$airline)
+  Residuals = resid(anova1), Airline = sentiment_variance$airline)
 
 #Plotting the analysis of variance with fitted & residuals 
-ggplot(anova2, aes(Fitted, Residuals, colour = Treatment)) + geom_point()
+ggplot(anova2, aes(Fitted, Residuals, colour = Airline)) + geom_point()
 ```
 
 ![](Airline_Sentiment_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-30-2.png)
