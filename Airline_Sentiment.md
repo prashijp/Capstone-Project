@@ -392,7 +392,9 @@ ggplot(head(trigram_df,15), aes(reorder(trigram,freq), freq)) +
   ggtitle("Most frequent Trigram")
 ```
 
-![](Airline_Sentiment_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-18-2.png) \#\#\# Tweets by Airlines
+![](Airline_Sentiment_files/figure-markdown_github-ascii_identifiers/unnamed-chunk-18-2.png) 
+
+### Tweets by Airlines
 
 We will analyze the total number of tweets for each airlines
 
