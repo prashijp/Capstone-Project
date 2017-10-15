@@ -594,10 +594,8 @@ Virgin America tweets indicate that they have more neutral tweets
 ``` r
 all.sentiment <- rbind(delta_sentiment,american_sentiment,united_sentiment,southwest_sentiment,virgin_america_sentiment,us_airways_sentiment)
 all.sentiment$score <- 0
- all.sentiment$score[all.sentiment$polarity == "Very Positive"] <- 1
- all.sentiment$score[all.sentiment$polarity == "Positive"] <- 0.5
- all.sentiment$score[all.sentiment$polarity == "Negative"] <- -0.5
- all.sentiment$score[all.sentiment$polarity == " Very Negative"] <- -1
+ all.sentiment$score[all.sentiment$polarity == "Positive"] <- 1
+ all.sentiment$score[all.sentiment$polarity == "Negative"] <- -1
 
  #Plot by sentiment for all airlines
  
