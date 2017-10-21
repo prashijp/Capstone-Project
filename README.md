@@ -20,5 +20,33 @@ Data is obtained from the airline sentiment dataset from Kaggle https://www.kagg
 10.Remove extra whitespace
 11.Make a copy of the corpus
 
+# Stemming
+12. Stem Completion
 
+# Term Document Matrix 
+14. Create a term document matrix
 
+# Word Frequencies
+15. Find Frequent Terms
+16. Creating a word cloud of frequent term
+17. Plotting the top 10 frequent words
+18. Plot the frequency of the words on linear / log scale 
+19. Plotting Bigrams on words frequency
+20. Plotting trigram on word frequency
+
+# Tweets by Airlines
+21. Retrieve Data for Delta airline
+22. Retrieve Data for American airline
+23. Retrieve Data for United airline
+24. Retrieve Data for Southwest airline
+25. Retrieve Data for US Airways
+26. Retrieve Data for Virgin America
+27. Combining data from all airlines
+28. Negative tweets by Airlines
+29. Reason behind the negative sentiment
+30. Bigrams and Trigrams of Sentiments on log scale
+
+# Analysis of Variance of the sentiments 
+31. Creating polarity_score as numeric
+32. Box plot of the polarity score for airlines
+33. Linerar regression with airlines as predictor variable
