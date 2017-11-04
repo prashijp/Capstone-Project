@@ -178,43 +178,85 @@ virgin_america_sentiment$airline = 'Virgin America'
 virgin_america_sentiment$code = 'VA'
 acolnames(virgin_america_sentiment)
 
-# Combining Data for all airlines
-
-all.sentiment <- rbind(delta_sentiment,american_sentiment,united_sentiment,southwest_sentiment,virgin_america_sentiment,us_airways_sentiment)
-all.sentiment$score <- 0
-all.sentiment$score[all.sentiment$polarity == "Very Positive"] <- 1
-all.sentiment$score[all.sentiment$polarity == "Positive"] <- 0.5
-all.sentiment$score[all.sentiment$polarity == "Negative"] <- -0.5
-all.sentiment$score[all.sentiment$polarity == " Very Negative"] <- -1
+all_sentiment <- rbind(delta_sentiment,american_sentiment,united_sentiment,
+                       southwest_sentiment,VA_sentiment,us_airways_sentiment)
+all_sentiment$score <- 0
+all_sentiment$score[all_sentiment$polarity == "positive"] <- 1
+all_sentiment$score[all_sentiment$polarity == "negative"] <- -1
 
 #Plot by sentiment for all airlines
 
-ggplot(all.sentiment, aes(x=airline,position = 'fill')) + geom_bar(aes(y=..count.., fill=polarity), position = "fill")  + scale_fill_brewer(palette="Dark2") +
+ggplot(all_sentiment, aes(x=airline,position = 'fill')) + 
+  geom_bar(aes(y=..count.., fill=polarity), position = "fill")  + 
+  scale_fill_brewer(palette="Dark2") +
   labs(x="Polarity", y="Number of Tweets") +
   ggtitle("Twitter Sentiment Analysis of US based airlines ")+
   theme(plot.title = element_text(hjust = 0.5)) 
 
-all.airlines <- rbind(delta,american,united,us_airways,virgin_america,southwest)
-all.airlines$updatedsentiment <- all.sentiment$polarity
-library(reshape2)
-airlines= all.airlines %>% group_by(airline) %>% dplyr::summarise(count=n())
-posNegByAirline <- dcast(all.airlines, airline ~ updatedsentiment)
-posNegByAirline
+# Plot by Location 
+all_airlines <- rbind(delta,american,united,us_airways,VA,southwest)
 
-## Negative tweets by Airlines
+# Bigram
+# Creating multiple variable of text variable for bigram and trigram to split 
+all_sentiment$text2 <- all_sentiment$text
+all_sentiment$tweet <- all_sentiment$text
 
-negativeTweets <- all.airlines %>% filter(updatedsentiment =="negative")
+all_sentiment$tweet <- str_to_lower(all_sentiment$tweet)
 
-ggplot(negativeTweets, aes(x= airline)) + geom_bar(aes(y=..count.., fill = airline))+geom_text(stat='count',aes(label=..count..),vjust=-0.2)+
-  scale_fill_brewer(palette="Dark2") + xlab("Airlines") + ylab("Tweets Count")
+# Creating Bigram of sentiments
+all_sentiment <- all_sentiment %>% 
+  unnest_tokens(bigram,text,token="ngrams", n=2)
+#head(all_sentiment$bigram)
+all_sentiment$rank1 <- order(all_sentiment$bigram)
 
-#Timeline of Negative tweets.
-#negativeTweets <- all.airlines %>% filter(updatedsentiment =="negative")
-#negativeTweetsByDate <- negativeTweets %>% group_by(tweet_created) %>% dplyr::summarise(count = n())
-#negativeTweetsByDatePlot = ggplot() + geom_line(data=negativeTweetsByDate, aes(x=tweet_created, y=count, group = 1)) 
-#negativeTweetsByDatePlot
 
-#Timeline of Negative tweets by Airlines
-#negativeTweetsByDateByAirline <- negativeTweets %>% group_by(airline,tweet_created) %>% dplyr::summarise(count = n())
-#negativeTweetsByDateByAirlinePlot = ggplot() + geom_line(data=negativeTweetsByDateByAirline, aes(x=tweet_created, y=count, group =airline , color=airline)) 
-#negativeTweetsByDateByAirlinePlot
+# Bigram Plot 
+ggplot(head(all_sentiment,15), aes(reorder(bigram,rank1), log10(rank1))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Bigrams") + ylab("Rank") +
+  ggtitle("Most frequent Bigrams")
+
+# Checking if bigram is available in the tweet 
+all_sentiment$Is_Bigram <-str_detect(all_sentiment$tweet, all_sentiment$bigram)
+
+
+# Trigrams of Sentiments 
+# Creating trigram of sentiments
+all_sentiment <- all_sentiment %>% 
+  unnest_tokens(trigram, text2 , token = "ngrams", n = 3)
+
+all_sentiment$rank2 <- order(all_sentiment$trigram)
+
+# Trigram Plot 
+ggplot(head(all_sentiment,15), aes(reorder(trigram,rank2), log10(rank2))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Rank") +
+  ggtitle("Most frequent Trigrams")
+
+# Checking if bigram is available in the tweet 
+all_sentiment$Is_Trigram <-str_detect(all_sentiment$tweet,all_sentiment$trigram)
+
+# Analysis of Variance of the sentiments 
+sentiment_variance <- subset(all_sentiment, polarity != "neutral")
+
+# Creating polarity_score as numeric
+sentiment_variance <- all_sentiment %>%  
+  mutate(polarity_score =  ifelse(polarity == "negative",0,1))
+
+# Converting the Is_Bigram and Is_Trigram to numeric 
+
+sentiment_variance$Is_Bigram <- as.numeric(sentiment_variance$Is_Bigram)
+sentiment_variance$Is_Trigram <- as.numeric(sentiment_variance$Is_Trigram)
+
+# Box plot of the polarity score for airlines.
+ggplot(sentiment_variance, aes(x = airline, y = polarity_score)) +
+  geom_boxplot(fill = "grey80", colour = "blue") +
+  scale_x_discrete() + xlab("Airline") +
+  ylab("Polarity Score")
+
+
+# Calculating Analysis of Variance with airlines as predictor variable 
+Myglm <- glm(polarity_score ~ airline + Is_Trigram + Is_Bigram  ,
+             data = sentiment_variance, family = binomial)
+summary(Myglm)
+print(anova(Myglm, test="Chisq"))

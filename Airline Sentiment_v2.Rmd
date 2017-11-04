@@ -1,0 +1,486 @@
+---
+title: "Airline Sentiment"
+date: "`r format(Sys.Date())`"
+output: github_document
+---
+### Introduction
+Analyzing the US based airlines performances by analyzing the the tweets of the 
+airlines.Identifying the sentiments of tweets and classifying them as nuetral,
+negative and positive sentiment for each airlines. Identify the issues  behind
+negative sentiments and checking the significance of bigrams, trigrams and 
+airlines on the sentiment.
+
+### Description of Data Set
+The dataset contains important fields like tweet_id,airline_sentiment, 
+airline, name, text, tweet_created, tweet_location which will be widely used
+in the sentiment analysis.
+
+```{r Initial Load}
+data_dir <- "~/Desktop/Springboard/Capstone Project/Capstone" 
+twitter_airline <- read.csv(file.path(data_dir,"tweets.csv"),header = TRUE)
+dim(twitter_airline)
+colnames(twitter_airline)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load the libraries
+Loading the libraries required for sentiment analysis.
+
+```{r Library Load, message= FALSE}
+library(tm)
+library(dplyr)
+library(plyr)
+library(sentiment)
+library(twitteR)
+library(wordcloud)
+library(ggplot2)
+library(magrittr)
+library(tidytext)
+```
+
+### Structure of the dataset
+```{r Dataset Summary}
+str(twitter_airline)
+summary(twitter_airline)
+```
+Dataset contains 14640 observations and 15 variables. There are some new 
+variables that will be added to the dataset.
+
+
+### Replace twitter handle with blank 
+The tweets contained the airlines twitter handle. We must first remove the 
+twitter handle as they should not be used in the text analysis. 
+
+```{r Data Wrangling}
+twitter_airline$text <- gsub("@VirginAmerica","",gsub("@AmericanAir","",
+ gsub("@JetBlue ","",gsub("@SouthwestAir","",gsub("@united","",
+ gsub("@USAirways","", twitter_airline$text))))))
+```
+
+### Build and cleaning the corpus 
+Here we convert the text into a word corpus using the function VectorSource. 
+A word corpus enables us to eliminate common words using the text mining 
+package tm. Removing the corpus specific stopwords  lets us focus on the
+important words. 
+```{r Corpus}
+tweets_corpus <- Corpus(VectorSource(twitter_airline$text))
+
+# Inspect Corpus
+inspect(tweets_corpus[1:2])
+
+
+### Clean the corpus
+
+# Remove Punctuations
+tweets_corpus <- tm_map(tweets_corpus,removePunctuation)
+inspect(tweets_corpus[1:2])
+
+#Remove URLs
+removeURL <- function(x) {
+  gsub("http[^[:space:]]*", "", x)
+}
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(removeURL))
+
+# Remove anything expect English and Space
+remove_others <- function(x) {
+  gsub("[^[:alpha:][:space:]]*","",x)
+}
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(remove_others))
+inspect(tweets_corpus[1:15])
+
+# Convert the corpus to lowercase 
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(tolower))
+
+# Remove Stopwords. 
+tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","delta","united","american","airways","airlines","flight","pilot",
+ "virgin","US airways","southwest","a","the","is","and")),"use", "see", 
+ "used", "via", "amp","the","a","thanks","thank","aa","aaaand","i","a","the",
+ "flight","airlines","flights","airway","will")
+tweets_corpus <- tm_map(tweets_corpus,removeWords,tweets_stopwords)
+inspect(tweets_corpus[1:15])
+
+# Remove extra whitespace
+tweets_corpus <- tm_map(tweets_corpus,stripWhitespace)
+inspect(tweets_corpus[1:15])
+
+# Make a copy of the corpus
+tweets_corpus_copy <- tweets_corpus
+```
+
+### Stemming 
+```{r Stemming}
+
+tweets_corpus <- tm_map(tweets_corpus,stemDocument)
+
+# Stem Completion
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(stemCompletion), 
+                        dictionary = tweets_corpus_copy)
+```
+
+
+### Create Term Document Martix
+
+We convert the word corpus into a document matrix. The Document matrix can be 
+analyzed to examine most frequently occurring words. 
+```{r TDM}
+tweet_tdm <- TermDocumentMatrix(tweets_corpus,
+                                control = list(wordLengths = c(1,Inf)))
+tweet_tdm
+```
+
+
+### Word Frequencies
+
+We find the most frequent words and we create a Word Cloud of tweets using
+We are limiting the maximum words to 200 and plotting the top 10 frequent words
+using the ggplot package.
+```{r Word Frequency}
+
+# Frequent Terms
+freq.terms <- findFreqTerms(tweet_tdm, lowfreq = 4)
+term.freq <- sort(rowSums(as.matrix(tweet_tdm)),decreasing = TRUE)
+df <- data.frame(term = names(term.freq), freq = term.freq)
+
+
+# Creating a word cloud of frequent term
+wordcloud(words = df$term, freq = df$freq, min.freq = 1,
+          max.words=200, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+# Plotting the top 10 frequent words
+library(ggplot2)
+ggplot(df[1:10,], aes(x=term, y=freq)) + geom_bar(stat="identity") +
+xlab("Terms") + ylab("Count") + coord_flip() 
+
+
+```
+
+#### Plot the frequency of the words on log scale .
+
+Plotting the frequency of top 50 words in the logarithmic scale. 
+```{r Log of frequency plot}
+Freq_df <- df
+
+Freq_df <- Freq_df %>% arrange(desc(freq))
+# Word frequency on log scale
+ggplot(head(Freq_df,50), aes(term, log10(freq))) + geom_point() +theme(axis.text.x=element_text(angle=45,hjust=1))
+  
+
+  
+```
+
+#### Plotting Bigrams / Trigrams for word frequency
+
+The initial exploration of the word analysis was helpful and we will construct 
+bigrams and trigrams and plot the top 15 bigram and trigram on a logarithmic 
+scale.Bigrams are two word phrases and  trigrams are three word phrases. 
+Recall that stop words had been removed so the phrases may look choppy. 
+```{r Bigrams & Trigrams}
+
+library(dplyr)
+#Bigram 
+bigram_df <- df %>%
+  unnest_tokens(bigram, term , token = "ngrams", n = 2)
+
+bigram_df <- bigram_df %>% arrange(desc(freq))
+head(bigram_df,10)
+
+#Bigram Plot
+ggplot(head(bigram_df,15), aes(reorder(bigram,freq), log10(freq))) +
+ geom_bar(stat = "identity") + coord_flip() +
+ xlab("Bigrams") + ylab("Frequency") + ggtitle("Most frequent bigrams")
+
+#Trigram
+trigram_df <- df %>%  unnest_tokens(trigram, term , token = "ngrams", n = 3)
+
+trigram_df <- trigram_df %>% arrange(desc(freq))
+head(trigram_df,10)
+
+# Trigram Plot 
+ggplot(head(trigram_df,15), aes(reorder(trigram,freq), log10(freq))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Frequency") +
+  ggtitle("Most frequent Trigram")
+```
+
+### Tweets by Airlines
+We will analyze the total number of tweets for each airlines. 
+
+```{r Tweets Count}
+
+ggplot(twitter_airline, aes(x= airline)) + geom_bar(aes(y=..count.., fill = airline))+geom_text(stat='count',aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") + xlab("Airlines") + ylab("Tweets Count")
+```
+
+United Airlines has the most tweets  and Virgin America has the least tweets.
+Having higher number of tweets can either be because of their popularty or 
+they might have lot of issues which needs to be investigated further. 
+
+
+### Sentiments
+Let us know look at the sentiments of the tweets for each airlines. It helps in 
+identifying the positive, negative and nuetral sentiment of the tweets for each
+airlines 
+
+### Retrieve Data for Delta airline
+```{r Delta Sentiment}
+delta <- subset(twitter_airline,airline == "Delta")
+delta_txt  <- delta$text
+delta_sentiment <- sentiment(delta_txt)
+delta_sentiment$score <- 0
+delta_sentiment$score[delta_sentiment$polarity == "positive"] <- 1
+delta_sentiment$score[delta_sentiment$polarity == "negative"] <- -1
+delta_table <- table(delta_sentiment$polarity)
+ggplot(delta_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+  aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+ labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of Delta Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+delta_sentiment$airline = 'Delta'
+delta_sentiment$code = 'DL'
+colnames(delta_sentiment)
+
+
+
+
+```
+ 
+Delta has most of the tweets that are nuetral. But the negative tweets are
+more than the positive tweets and requires inspection.
+### Retrieve Data for American airline
+```{r American Airlines Sentiment} 
+american <- subset(twitter_airline,airline == "American")
+american_txt  <- american$text
+american_sentiment <- sentiment(american_txt)
+american_sentiment$score <- 0
+american_sentiment$score[american_sentiment$polarity == "positive"] <- 1
+american_sentiment$score[american_sentiment$polarity == "negative"] <- -1
+american_table <- table(american_sentiment$polarity)
+ggplot(american_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+   aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+  labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of American Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+american_sentiment$airline = 'American'
+american_sentiment$code = 'AA'
+colnames(american_sentiment)
+```
+
+AA tweets indicate that their negative tweets are almost equal to the 
+neutral tweets. The reason behind the negative tweets must be explored. 
+
+### Retrieve Data for United airline
+```{r United Airlines Sentiment}
+united <- subset(twitter_airline,airline == "United")
+united_txt  <- united$text
+united_sentiment <- sentiment(united_txt)
+united_sentiment$score <- 0
+united_sentiment$score[united_sentiment$polarity == "positive"] <- 1
+united_sentiment$score[united_sentiment$polarity == "negative"] <- -1
+united_table <- table(united_sentiment$polarity)
+ggplot(united_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+  aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+  labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of United Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+united_sentiment$airline = 'United'
+united_sentiment$code = 'UA'
+colnames(united_sentiment)
+```
+United airlines tweets indicate that their negative tweets are almost 
+equal to the neutral tweets. The reason behind the negative tweets must 
+be explored. 
+
+
+### Retrieve Data for Southwest airline
+```{r Southwest Airlines Sentiment}
+southwest <- subset(twitter_airline,airline == "Southwest")
+southwest_txt  <- southwest$text
+southwest_sentiment <- sentiment(southwest_txt)
+southwest_sentiment$score <- 0
+southwest_sentiment$score[southwest_sentiment$polarity == "positive"] <- 1
+southwest_sentiment$score[southwest_sentiment$polarity == "negative"] <- -1
+southwest_table <- table(southwest_sentiment$polarity)
+ggplot(southwest_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+  aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+  labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of Southwest Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+southwest_sentiment$airline = 'Southwest'
+southwest_sentiment$code = 'SW'
+colnames(southwest_sentiment)
+```
+United airlines tweets indicate that they have almost double the amount 
+of neutral tweets as compared to the negative tweets. 
+
+### Retrieve Data for US Airways
+```{r US Airways Sentiment}
+us_airways <- subset(twitter_airline,airline == "US Airways")
+us_airways_txt  <- us_airways$text
+us_airways_sentiment <- sentiment(us_airways_txt)
+us_airways_sentiment$score <- 0
+us_airways_sentiment$score[us_airways_sentiment$polarity == "positive"] <- 1
+us_airways_sentiment$score[us_airways_sentiment$polarity == "negative"] <- -1
+us_airways_table <- table(us_airways_sentiment$polarity)
+ggplot(us_airways_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+  aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+  labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of Us_airways Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+us_airways_sentiment$airline = 'US Airways'
+us_airways_sentiment$code = 'UW'
+colnames(us_airways_sentiment)
+```
+
+US Airways tweets indicate that they have almost equal amount of neutral
+and negative tweets. The reason behind the negative tweets must be
+investigated further.
+
+
+### Retrieve Data for Virgin America
+```{r Virgin America Sentiment}
+VA <- subset(twitter_airline,airline == "Virgin America")
+VA_txt  <- VA$text
+VA_sentiment <- sentiment(VA_txt)
+VA_sentiment$score <- 0
+VA_sentiment$score[VA_sentiment$polarity == "positive"] <- 1
+VA_sentiment$score[VA_sentiment$polarity == "negative"] <- -1
+VA_table <- table(VA_sentiment$polarity)
+ggplot(VA_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+    aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+  labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of Virgin America ")+
+  theme(plot.title = element_text(hjust = 0.5))
+VA_sentiment$airline = 'Virgin America'
+VA_sentiment$code = 'VA'
+colnames(VA_sentiment)
+```
+
+Virgin America tweets indicate that they have more neutral tweets
+
+### Combining data from all airlines
+```{r Overall Sentiment}
+all_sentiment <- rbind(delta_sentiment,american_sentiment,united_sentiment,
+    southwest_sentiment,VA_sentiment,us_airways_sentiment)
+all_sentiment$score <- 0
+ all_sentiment$score[all_sentiment$polarity == "positive"] <- 1
+ all_sentiment$score[all_sentiment$polarity == "negative"] <- -1
+
+ #Plot by sentiment for all airlines
+ 
+ggplot(all_sentiment, aes(x=airline,position = 'fill')) + 
+  geom_bar(aes(y=..count.., fill=polarity), position = "fill")  + 
+  scale_fill_brewer(palette="Dark2") +
+ labs(x="Polarity", y="Number of Tweets") +
+ ggtitle("Twitter Sentiment Analysis of US based airlines ")+
+  theme(plot.title = element_text(hjust = 0.5)) 
+ 
+# Plot by Location 
+all_airlines <- rbind(delta,american,united,us_airways,VA,southwest)
+
+
+```
+
+The 100% stacked bar indicate that American, United and US Airways have 
+the most negative tweets as compared to other airlines. It is important 
+now to understand the reason behind the negative tweets
+
+
+
+# Bigrams  of Sentiments 
+We will construct bigrams of the setniment  and plot them  on a logarithmic 
+scale. We will check whether the bigram is present in the tweet
+```{r Sentiment Bigrams}
+library(stringr)
+# Creating multiple variable of text variable for bigram and trigram to split 
+all_sentiment$text2 <- all_sentiment$text
+all_sentiment$tweet <- all_sentiment$text
+
+all_sentiment$tweet <- str_to_lower(all_sentiment$tweet)
+
+# Creating Bigram of sentiments
+all_sentiment <- all_sentiment %>% 
+  unnest_tokens(bigram,text,token="ngrams", n=2)
+#head(all_sentiment$bigram)
+all_sentiment$rank1 <- order(all_sentiment$bigram)
+
+
+# Bigram Plot 
+ggplot(head(all_sentiment,15), aes(reorder(bigram,rank1), log10(rank1))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Bigrams") + ylab("Rank") +
+  ggtitle("Most frequent Bigrams")
+
+# Checking if bigram is available in the tweet 
+all_sentiment$Is_Bigram <-str_detect(all_sentiment$tweet, all_sentiment$bigram)
+
+```
+
+# Trigrams of Sentiments 
+We will construct trigram of the setniment  and plot them  on a logarithmic 
+scale. We will check whether the trigram is present in the tweet
+```{r Trigram Sentiment}
+# Creating trigram of sentiments
+all_sentiment <- all_sentiment %>% 
+  unnest_tokens(trigram, text2 , token = "ngrams", n = 3)
+
+all_sentiment$rank2 <- order(all_sentiment$trigram)
+
+
+# Trigram Plot 
+ggplot(head(all_sentiment,15), aes(reorder(trigram,rank2), log10(rank2))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Rank") +
+  ggtitle("Most frequent Trigrams")
+
+# Checking if bigram is available in the tweet 
+all_sentiment$Is_Trigram <-str_detect(all_sentiment$tweet,all_sentiment$trigram)
+```
+
+
+#### Analysis of Variance of the sentiments 
+Creating a numeric variable for polarity. polarity_score is -1 for negative
+sentiment, 0 for neutral and 1 for positive sentiment 
+
+```{r Sentiment Variance}
+sentiment_variance <- subset(all_sentiment, polarity != "neutral")
+
+# Creating polarity_score as numeric
+sentiment_variance <- all_sentiment %>%  
+  mutate(polarity_score =  ifelse(polarity == "negative",0,1))
+
+# Converting the Is_Bigram and Is_Trigram to numeric 
+
+sentiment_variance$Is_Bigram <- as.numeric(sentiment_variance$Is_Bigram)
+sentiment_variance$Is_Trigram <- as.numeric(sentiment_variance$Is_Trigram)
+
+# Box plot of the polarity score for airlines.
+ggplot(sentiment_variance, aes(x = airline, y = polarity_score)) +
+  geom_boxplot(fill = "grey80", colour = "blue") +
+  scale_x_discrete() + xlab("Airline") +
+  ylab("Polarity Score")
+
+
+
+# Calculating Analysis of Variance with airlines as predictor variable 
+
+
+Myglm <- glm(polarity_score ~ airline + Is_Trigram + Is_Bigram  ,
+             data = sentiment_variance, family = binomial)
+summary(Myglm)
+print(anova(Myglm, test="Chisq"))
+
+
+```
