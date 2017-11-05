@@ -2,7 +2,7 @@
 Comparing US based airlines performance using twitter sentimental analysis
 
 # Project Problem:
-Analyzing the US based airlines performances  by analyzing the  the tweets for positive/ negative sentiment  along with identifying how long it is taking for negative sentiment to convert into positive sentiment, analyze the sentiment analysis by region and find the issues behind the negative sentiment 
+Analyzing the US based airlines performances by analyzing the the tweets of the airlines.Identifying the sentiments of tweets and classifying them as nuetral,negative and positive sentiment for each airlines. Identify the issues  behind negative sentiments and checking the significance of bigrams, trigrams and airlines on the sentiment
 
 # Dataset: 
 Data is obtained from the airline sentiment dataset from Kaggle https://www.kaggle.com/crowdflower/twitter-airline-sentiment
