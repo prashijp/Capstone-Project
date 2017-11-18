@@ -1,10 +1,10 @@
-Airline Sentiment
+Delta Sentiment
 ================
 2017-11-17
 
 ### Introduction
 
-Analyzing the US based airlines performances by analyzing the the tweets of the airlines.Identifying the sentiments of tweets and classifying them as nuetral, negative and positive sentiment for each airlines. Identify the issues behind negative sentiments and checking the significance of bigrams, trigrams and airlines on the sentiment.
+Identifying the sentiments of tweets and classifying them as nuetral, negative and positive sentiment for Delta airlines. Plotting the significance of bigrams, trigrams and word frequencies of Delta airlines.
 
 ### Description of Data Set
 
