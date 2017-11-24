@@ -150,10 +150,10 @@ twitter_airline$text <- gsub("@VirginAmerica","",gsub("@AmericanAir","",
  gsub("@USAirways","", twitter_airline$text))))))
 ```
 
-### Subsetting delta tweets from the dataset
+### Subsetting VirginAmerica tweets from the dataset
 
 ``` r
-twitter_delta <- filter(twitter_airline, airline =="Delta")
+twitter_VirginAmerica <- filter(twitter_airline, airline =="Virgin America")
 ```
 
 ### Build and cleaning the corpus
@@ -161,7 +161,7 @@ twitter_delta <- filter(twitter_airline, airline =="Delta")
 Here we convert the text into a word corpus using the function VectorSource. A word corpus enables us to eliminate common words using the text mining package tm. Removing the corpus specific stopwords lets us focus on the important words.
 
 ``` r
-tweets_corpus <- Corpus(VectorSource(twitter_delta$text))
+tweets_corpus <- Corpus(VectorSource(twitter_VirginAmerica$text))
 
 
 # Inspect Corpus
@@ -172,11 +172,11 @@ inspect(tweets_corpus[1:5])
     ## Metadata:  corpus specific: 1, document level (indexed): 0
     ## Content:  documents: 5
     ## 
-    ## [1] Yesterday on my way from EWR to FLL just after take-off. :)\n#wheelsup #JetBlueSoFly http://t.co/9xkiy0Kq2j                            
-    ## [2] I hope so because I fly very often and would hate to change airlines.                                                                  
-    ## [3] flight 1041 to Savannah, GA                                                                                                            
-    ## [4] They weren't on any flight, they just came Late Flight. Your JetBlue employee just informed us!                                        
-    ## [5] everyone is here but our pilots are no where to be found and my last flight the plane was dirty that I had to clean my area &amp; seat!
+    ## [1]  What @dhepburn said.                                                                                           
+    ## [2]  plus you've added commercials to the experience... tacky.                                                      
+    ## [3]  I didn't today... Must mean I need to take another trip!                                                       
+    ## [4]  it's really aggressive to blast obnoxious "entertainment" in your guests' faces &amp; they have little recourse
+    ## [5]  and it's a really big bad thing about it
 
 ### Clean the corpus
 
@@ -203,11 +203,11 @@ inspect(tweets_corpus[1:5])
     ## Metadata:  corpus specific: 1, document level (indexed): 0
     ## Content:  documents: 5
     ## 
-    ## [1] Yesterday on my way from EWR to FLL just after takeoff \nwheelsup JetBlueSoFly                                                      
-    ## [2] I hope so because I fly very often and would hate to change airlines                                                                
-    ## [3] flight  to Savannah GA                                                                                                              
-    ## [4] They werent on any flight they just came Late Flight Your JetBlue employee just informed us                                         
-    ## [5] everyone is here but our pilots are no where to be found and my last flight the plane was dirty that I had to clean my area amp seat
+    ## [1]  What dhepburn said                                                                                       
+    ## [2]  plus youve added commercials to the experience tacky                                                     
+    ## [3]  I didnt today Must mean I need to take another trip                                                      
+    ## [4]  its really aggressive to blast obnoxious entertainment in your guests faces amp they have little recourse
+    ## [5]  and its a really big bad thing about it
 
 ### Convert the corpus to lowercase
 
@@ -215,7 +215,7 @@ inspect(tweets_corpus[1:5])
 tweets_corpus <- tm_map(tweets_corpus,content_transformer(tolower))
 
 # Remove Stopwords. 
-tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","delta","united","american","airways","airlines","flight","pilot",
+tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","VirginAmerica","VirginAmerica","VirginAmerica","airways","airlines","flight","pilot",
  "virgin","US airways","southwest","a","the","is","and")),"use", "see", 
  "used", "via", "amp","the","a","aa","aaaand","i","a","the",
  "flight","airlines","flights","airway","will", "cant","and","is","can","im")
@@ -227,11 +227,11 @@ inspect(tweets_corpus[1:5])
     ## Metadata:  corpus specific: 1, document level (indexed): 0
     ## Content:  documents: 5
     ## 
-    ## [1] yesterday   way  ewr  fll just  takeoff \nwheelsup jetbluesofly           
-    ## [2]  hope    fly  often   hate  change                                        
-    ## [3]    savannah ga                                                            
-    ## [4]  werent     just came late   jetblue employee just informed us            
-    ## [5] everyone     pilots      found   last   plane  dirty     clean  area  seat
+    ## [1]   dhepburn said                                                                     
+    ## [2]  plus youve added commercials   experience tacky                                    
+    ## [3]   didnt today must mean  need  take another trip                                    
+    ## [4]   really aggressive  blast obnoxious entertainment   guests faces    little recourse
+    ## [5]     really big bad thing
 
 ### Remove extra whitespace
 
@@ -244,11 +244,11 @@ inspect(tweets_corpus[1:5])
     ## Metadata:  corpus specific: 1, document level (indexed): 0
     ## Content:  documents: 5
     ## 
-    ## [1] yesterday way ewr fll just takeoff wheelsup jetbluesofly 
-    ## [2]  hope fly often hate change                              
-    ## [3]  savannah ga                                             
-    ## [4]  werent just came late jetblue employee just informed us 
-    ## [5] everyone pilots found last plane dirty clean area seat
+    ## [1]  dhepburn said                                                               
+    ## [2]  plus youve added commercials experience tacky                               
+    ## [3]  didnt today must mean need take another trip                                
+    ## [4]  really aggressive blast obnoxious entertainment guests faces little recourse
+    ## [5]  really big bad thing
 
 ### Make a copy of the corpus
 
@@ -270,20 +270,27 @@ attributes(tweets_corpus_jp)
     ## [1] "SimpleCorpus" "Corpus"
 
 ``` r
-delta_df <-data.frame(text=unlist(sapply(tweets_corpus, `[`)), stringsAsFactors=F)
+VirginAmerica_df <-data.frame(text=unlist(sapply(tweets_corpus, `[`)), stringsAsFactors=F)
 
 
-delta_df$tweet_id <- twitter_delta$tweet_id
-head(delta_df)
+VirginAmerica_df$tweet_id <- twitter_VirginAmerica$tweet_id
+head(VirginAmerica_df)
 ```
 
-    ##                                                        text    tweet_id
-    ## 1 yesterday way ewr fll just takeoff wheelsup jetbluesofly  5.70309e+17
-    ## 2                               hope fly often hate change  5.70309e+17
-    ## 3                                               savannah ga 5.70309e+17
-    ## 4   werent just came late jetblue employee just informed us 5.70308e+17
-    ## 5    everyone pilots found last plane dirty clean area seat 5.70305e+17
-    ## 6                            update appreciated time thanks 5.70305e+17
+    ##                                                                            text
+    ## 1                                                                 dhepburn said
+    ## 2                                 plus youve added commercials experience tacky
+    ## 3                                  didnt today must mean need take another trip
+    ## 4  really aggressive blast obnoxious entertainment guests faces little recourse
+    ## 5                                                         really big bad thing 
+    ## 6                  seriously pay seats didnt playing really bad thing flying va
+    ##      tweet_id
+    ## 1 5.70306e+17
+    ## 2 5.70301e+17
+    ## 3 5.70301e+17
+    ## 4 5.70301e+17
+    ## 5 5.70301e+17
+    ## 6 5.70301e+17
 
 ### Create Term Document Martix
 
@@ -295,10 +302,10 @@ tweet_tdm <- TermDocumentMatrix(tweets_corpus,
 tweet_tdm
 ```
 
-    ## <<TermDocumentMatrix (terms: 4248, documents: 2222)>>
-    ## Non-/sparse entries: 16822/9422234
+    ## <<TermDocumentMatrix (terms: 1611, documents: 504)>>
+    ## Non-/sparse entries: 3794/808150
     ## Sparsity           : 100%
-    ## Maximal term length: 29
+    ## Maximal term length: 37
     ## Weighting          : term frequency (tf)
 
 ### Word Frequencies
@@ -311,25 +318,14 @@ freq_terms <- findFreqTerms(tweet_tdm)
 term_freq <- sort(rowSums(as.matrix(tweet_tdm)),decreasing = TRUE)
 freqterms_df <- data.frame(term = names(term_freq), freq = term_freq)
 
-head(freqterms_df)
-```
 
-    ##            term freq
-    ## jetblue jetblue  376
-    ## thanks   thanks  182
-    ## just       just  158
-    ## fleek     fleek  152
-    ## fleets   fleets  145
-    ## now         now  135
-
-``` r
 # Creating a word cloud of frequent term
 wordcloud(words = freqterms_df$term, freq = freqterms_df$freq, min.freq = 1,
           max.words=100, random.order=FALSE, rot.per=0.35, 
           colors=brewer.pal(8, "Dark2"))
 ```
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Word%20Frequency-1.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Word%20Frequency-1.png)
 
 ``` r
 # Plotting the top 10 frequent words
@@ -341,24 +337,24 @@ freqterms_df <- freqterms_df[order(freqterms_df$rank,decreasing = F),]
 head(freqterms_df,10)
 ```
 
-    ##            term freq rank
-    ## jetblue jetblue  376    1
-    ## thanks   thanks  182    2
-    ## just       just  158    3
-    ## fleek     fleek  152    4
-    ## fleets   fleets  145    5
-    ## now         now  135    6
-    ## get         get  130    7
-    ## time       time  105    8
-    ## jfk         jfk  104    9
-    ## thank     thank   95   10
+    ##                        term freq rank
+    ## just                   just   35    1
+    ## thanks               thanks   29    2
+    ## help                   help   29    2
+    ## love                   love   26    4
+    ## guys                   guys   26    4
+    ## flying               flying   24    6
+    ## website             website   24    6
+    ## virginamerica virginamerica   23    8
+    ## airline             airline   22    9
+    ## cancelled         cancelled   22    9
 
 ``` r
 ggplot(head(freqterms_df,10), aes(x=term, y=rank)) + geom_bar(stat="identity") +
 xlab("Terms") + ylab("Count") 
 ```
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Word%20Frequency-2.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Word%20Frequency-2.png)
 
 #### Plot the frequency of the words on log scale .
 
@@ -368,13 +364,17 @@ Plotting the frequency of top 50 words in the logarithmic scale.
 # Word frequency on log scale
 
 freq_terms20 <- head(freqterms_df,20)
-ggplot(freq_terms20, aes(rank, log(freq))) + geom_point()+  geom_smooth() +
-geom_text_repel(label = rownames(freq_terms20)) 
+ggplot(freq_terms20, aes(rank, log(freq))) + geom_point() +geom_smooth() +
+geom_text_repel(label = rownames(freq_terms20))   
 ```
 
     ## `geom_smooth()` using method = 'loess'
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Log%20of%20frequency%20plot%20-1.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Log%20of%20frequency%20plot%20-1.png)
+
+``` r
+  #theme(axis.text.x=element_text(angle=45,hjust=1)) 
+```
 
 #### Plotting Bigrams for word frequency
 
@@ -393,23 +393,23 @@ head(bigram_df15,15)
 ```
 
     ## # A tibble: 15 x 3
-    ##     freq  rank        bigram
-    ##    <dbl> <int>         <chr>
-    ##  1    83     1 plane delayed
-    ##  2    63     2       one new
-    ##  3    62     3     help need
-    ##  4    62     3 need customer
-    ##  5    62     3   customer rt
-    ##  6    59     6       go love
-    ##  7    54     7   please good
-    ##  8    54     7    good hours
-    ##  9    54     7    hours back
-    ## 10    54     7  back airport
-    ## 11    46    11    way really
-    ## 12    46    11 really flying
-    ## 13    46    11   flying hour
-    ## 14    44    14    got boston
-    ## 15    44    14  boston going
+    ##     freq  rank            bigram
+    ##    <dbl> <int>             <chr>
+    ##  1    29     1       thanks help
+    ##  2    26     2         love guys
+    ##  3    24     3    flying website
+    ##  4    22     4 airline cancelled
+    ##  5    20     5          need fly
+    ##  6    20     5          fly seat
+    ##  7    20     5         seat site
+    ##  8    20     5          site get
+    ##  9    18     9        time first
+    ## 10    18     9       first check
+    ## 11    17    11          sfo back
+    ## 12    16    12           now lax
+    ## 13    16    12        lax trying
+    ## 14    16    12    trying service
+    ## 15    15    15        still next
 
 ``` r
 bigram_df15 <- bigram_df15[c("bigram","freq","rank")]
@@ -419,18 +419,18 @@ ggplot(bigram_df15,  aes(reorder(bigram,freq), log10(freq))) +
  xlab("Bigrams") + ylab("Frequency") + ggtitle("Most frequent bigrams")
 ```
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Bigrams-1.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Bigrams-1.png)
 
 ``` r
 #Bigram Plot ranking vs frequency on log scale
 
-ggplot(bigram_df15, aes(rank, log(freq))) + geom_point()+ geom_smooth() +
+ggplot(bigram_df15, aes(rank, log(freq))) + geom_point()  + geom_smooth() +
 geom_text_repel(label = (bigram_df15$bigram)) 
 ```
 
     ## `geom_smooth()` using method = 'loess'
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Bigrams-2.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Bigrams-2.png)
 
 #### Plotting Bigrams / Trigrams for word frequency
 
@@ -444,23 +444,23 @@ head(trigram_df15,15)
 ```
 
     ## # A tibble: 15 x 3
-    ##     freq  rank               trigram
-    ##    <dbl> <int>                 <chr>
-    ##  1    62    23    help need customer
-    ##  2    62    23      need customer rt
-    ##  3    54    32     please good hours
-    ##  4    54    32       good hours back
-    ##  5    54    32    hours back airport
-    ##  6    46    40     way really flying
-    ##  7    46    40    really flying hour
-    ##  8    44    44      got boston going
-    ##  9    41    50   airline ill waiting
-    ## 10    39    54        much blue want
-    ## 11    39    54           blue want u
-    ## 12    39    54           want u even
-    ## 13    37    60      change late make
-    ## 14    37    60        late make best
-    ## 15    35    65 last tomorrow getting
+    ##     freq  rank                trigram
+    ##    <dbl> <int>                  <chr>
+    ##  1    20    12          need fly seat
+    ##  2    20    12          fly seat site
+    ##  3    20    12          seat site get
+    ##  4    18    18       time first check
+    ##  5    16    23         now lax trying
+    ##  6    16    23     lax trying service
+    ##  7    15    27        still next best
+    ##  8    15    27          next best way
+    ##  9    15    27           best way new
+    ## 10    15    27          way new thank
+    ## 11    14    33    today please status
+    ## 12    14    33 please status customer
+    ## 13    14    33   status customer like
+    ## 14    13    38           vx know book
+    ## 15    13    38       know book dallas
 
 ``` r
 # Trigram Plot 
@@ -470,59 +470,55 @@ ggplot(trigram_df15, aes(reorder(trigram,freq), log10(freq))) +
   ggtitle("Most frequent Trigram")
 ```
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Trigrams-1.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Trigrams-1.png)
 
 ``` r
 #Trigram Plot ranking vs frequency on log scale
 
-ggplot(trigram_df15, aes(rank, log(freq))) + geom_point() +
-  geom_smooth() +geom_text_repel(label = (trigram_df15$trigram))
+ggplot(trigram_df15, aes(rank, log(freq))) + geom_point() + geom_smooth()+
+geom_text_repel(label = (trigram_df15$trigram)) 
 ```
 
     ## `geom_smooth()` using method = 'loess'
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Trigrams-2.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/Trigrams-2.png)
 
 ### Sentiments
 
-Let us know look at the sentiments of the tweets for delta airlines. It helps in identifying the positive, negative and nuetral sentiment of the tweets.
+Let us know look at the sentiments of the tweets for VirginAmerica airlines. It helps in identifying the positive, negative and nuetral sentiment of the tweets.
 
-### Retrieve Data for Delta airline
+### Retrieve Data for VirginAmerica airline
 
 ``` r
-delta <- delta_df
-delta <- droplevels(delta)
+VirginAmerica <- VirginAmerica_df
+VirginAmerica <- droplevels(VirginAmerica)
 
 
-delta_txt  <- delta$text
+VirginAmerica_txt  <- VirginAmerica$text
 
-delta_sentiment <- sentiment(delta_txt)
+VirginAmerica_sentiment <- sentiment(VirginAmerica_txt)
 
 # map values 
-delta_sentiment$score <- NA
-delta_sentiment$score[delta_sentiment$polarity == "positive"] <- 1
-delta_sentiment$score[delta_sentiment$polarity == "negative"] <- -1
-#delta_table <- table(delta_sentiment$polarity)
-ggplot(delta_sentiment, aes(x=polarity)) +
+VirginAmerica_sentiment$score <- NA
+VirginAmerica_sentiment$score[VirginAmerica_sentiment$polarity == "positive"] <- 1
+VirginAmerica_sentiment$score[VirginAmerica_sentiment$polarity == "negative"] <- -1
+#VirginAmerica_table <- table(VirginAmerica_sentiment$polarity)
+ggplot(VirginAmerica_sentiment, aes(x=polarity)) +
   geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
   aes(label=..count..),vjust=-0.2)+
   scale_fill_brewer(palette="Dark2") +
  labs(x="Polarity", y="Number of Tweets") +
-  ggtitle("Twitter Sentiment Analysis of Delta Airlines")+
+  ggtitle("Twitter Sentiment Analysis of VirginAmerica Airlines")+
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Delta%20Sentiment-1.png)
+![](Airline_Sentiment_VA_files/figure-markdown_github-ascii_identifiers/VirginAmerica%20Sentiment-1.png)
 
 ``` r
-delta_sentiment$tweet_id <- delta$tweet_id
+VirginAmerica_sentiment$tweet_id <- VirginAmerica$tweet_id
 
-delta_sentiment$airline <- 'Delta'
-delta_sentiment$code <- 'DL'
-colnames(delta_sentiment)
+VirginAmerica_sentiment$airline <- 'VirginAmerica'
+VirginAmerica_sentiment$code <- 'VA'
 ```
 
-    ## [1] "text"     "polarity" "language" "score"    "tweet_id" "airline" 
-    ## [7] "code"
-
-Delta has most of the tweets that are nuetral. The negative tweets are more than the positive tweets
+VirginAmerica has most of the tweets that are nuetral. The negative tweets are more than the positive tweets
