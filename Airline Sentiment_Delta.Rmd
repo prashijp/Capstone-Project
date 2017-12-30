@@ -1,0 +1,459 @@
+---
+title: "Airline Sentiment"
+date: "`r format(Sys.Date())`"
+output: github_document
+---
+### Introduction
+Analyzing the US based airlines performances by analyzing the the tweets of the 
+airlines.Identifying the sentiments of tweets and classifying them as nuetral,
+negative and positive sentiment for each airlines. Identify the issues  behind
+negative sentiments and checking the significance of bigrams, trigrams and 
+airlines on the sentiment.
+
+### Description of Data Set
+The dataset contains important fields like tweet_id,airline_sentiment, 
+airline, name, text, tweet_created, tweet_location which will be widely used
+in the sentiment analysis.
+
+```{r Initial Load}
+data_dir <- "~/Desktop/Springboard/Capstone Project/Capstone" 
+twitter_airline <- read.csv(file.path(data_dir,"tweets.csv"),header = TRUE)
+dim(twitter_airline)
+colnames(twitter_airline)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Load the libraries
+Loading the libraries required for sentiment analysis.
+
+```{r Library Load,results='hide', message=FALSE, cache=FALSE, warning=F}
+library(tm)
+library(dplyr)
+library(plyr)
+library(sentiment)
+library(twitteR)
+library(wordcloud)
+library(ggplot2)
+library(magrittr)
+library(tidytext)
+library(ggrepel)
+library(stringr)
+dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+require(rJava)
+```
+
+### Structure of the dataset
+```{r Dataset Structure}
+str(twitter_airline)
+```
+### Summary  of the dataset
+
+```{r Dataset Summary }
+summary(twitter_airline)
+```
+Dataset contains 14640 observations and 15 variables. There are some new 
+variables that will be added to the dataset.
+
+
+### Replace twitter handle with blank 
+The tweets contained the airlines twitter handle. We must first remove the 
+twitter handle as they should not be used in the text analysis. 
+
+```{r Data Wrangling}
+twitter_airline$text <- gsub("@VirginAmerica","",gsub("@AmericanAir","",
+ gsub("@JetBlue ","",gsub("@SouthwestAir","",gsub("@united","",
+ gsub("@USAirways","", twitter_airline$text))))))
+```
+
+
+### Subsetting delta tweets from the dataset
+
+```{r}
+twitter_delta <- filter(twitter_airline, airline =="Delta")
+```
+
+### Build and cleaning the corpus 
+Here we convert the text into a word corpus using the function VectorSource. 
+A word corpus enables us to eliminate common words using the text mining 
+package tm. Removing the corpus specific stopwords  lets us focus on the
+important words. 
+```{r Corpus}
+tweets_corpus <- Corpus(VectorSource(twitter_delta$text))
+
+
+# Inspect Corpus
+inspect(tweets_corpus[1:5])
+
+
+
+```
+
+### Clean the corpus
+```{r Clean Corpus}
+
+# Remove Punctuations
+tweets_corpus <- tm_map(tweets_corpus,removePunctuation)
+
+
+#Remove URLs
+removeURL <- function(x) {
+  gsub("http[^[:space:]]*", "", x)
+}
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(removeURL))
+
+# Remove anything expect English and Space
+remove_others <- function(x) {
+  gsub("[^[:alpha:][:space:]]*","",x)
+}
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(remove_others))
+inspect(tweets_corpus[1:5])
+
+```
+
+### Convert the corpus to lowercase 
+```{r Clean Corpus 2}
+tweets_corpus <- tm_map(tweets_corpus,content_transformer(tolower))
+
+# Remove Stopwords. 
+tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","delta","united","american","airways","airlines","flight","pilot",
+ "virgin","US airways","southwest","a","the","is","and")),"use", "see", 
+ "used", "via", "amp","the","a","aa","aaaand","i","a","the",
+ "flight","airlines","flights","airway","will", "cant","and","is","can","im")
+tweets_corpus <- tm_map(tweets_corpus,removeWords,tweets_stopwords)
+inspect(tweets_corpus[1:5])
+
+```
+
+### Remove extra whitespace
+```{r Remove whitespace}
+tweets_corpus <- tm_map(tweets_corpus,stripWhitespace)
+inspect(tweets_corpus[1:5])
+```
+
+### Make a copy of the corpus
+
+```{r Corpus copy }
+tweets_corpus_copy <- tweets_corpus
+tweets_corpus_jp <- tweets_corpus
+```
+### converting corpus to dataframe 
+```{r}
+attributes(tweets_corpus_jp)
+delta_df <-data.frame(text=unlist(sapply(tweets_corpus, `[`)), stringsAsFactors=F)
+
+
+delta_df$tweet_id <- twitter_delta$tweet_id
+head(delta_df)
+```
+
+
+### Create Term Document Martix
+
+We convert the word corpus into a document matrix. The Document matrix can be 
+analyzed to examine most frequently occurring words. 
+```{r TDM}
+tweet_tdm <- TermDocumentMatrix(tweets_corpus,
+                                control = list(wordLengths = c(1,Inf)))
+tweet_tdm
+```
+
+
+### Word Frequencies
+
+We find the most frequent words and we create a Word Cloud of tweets using
+We are limiting the maximum words to 100 and plotting the top 10 frequent words
+using the ggplot package.
+```{r Word Frequency, warning= FALSE}
+
+# Frequent Terms
+freq_terms <- findFreqTerms(tweet_tdm)
+term_freq <- sort(rowSums(as.matrix(tweet_tdm)),decreasing = TRUE)
+freqterms_df <- data.frame(term = names(term_freq), freq = term_freq)
+
+head(freqterms_df)
+
+# Creating a word cloud of frequent term
+wordcloud(words = freqterms_df$term, freq = freqterms_df$freq, min.freq = 1,
+          max.words=100, random.order=FALSE, rot.per=0.35, 
+          colors=brewer.pal(8, "Dark2"))
+
+# Plotting the top 10 frequent words
+
+
+
+freqterms_df$rank <- rank(-freqterms_df$freq,ties.method="min")
+freqterms_df <- freqterms_df[order(freqterms_df$rank,decreasing = F),]
+head(freqterms_df,10)
+
+ggplot(head(freqterms_df,10), aes(x=term, y=rank)) + geom_bar(stat="identity") +
+xlab("Terms") + ylab("Count") 
+
+
+```
+
+
+#### Plot the frequency of the words on log scale .
+
+Plotting the frequency of top 50 words in the logarithmic scale. 
+```{r Log of frequency plot , warning= FALSE}
+
+# Word frequency on log scale
+
+freq_terms20 <- head(freqterms_df,20)
+ggplot(freq_terms20, aes(rank, log(freq))) + geom_point()+  geom_smooth(method="lm") +
+geom_text_repel(label = rownames(freq_terms20)) 
+
+```
+
+#### Plotting Bigrams for word frequency
+
+The initial exploration of the word analysis was helpful and we will construct 
+bigrams and trigrams and plot the top 15 bigram and trigram on a logarithmic 
+scale.Bigrams are two word phrases and  trigrams are three word phrases. 
+Recall that stop words had been removed so the phrases may look choppy. 
+```{r Bigrams, warning= FALSE}
+
+#Bigram 
+bigram_df <- freqterms_df %>%
+  unnest_tokens(bigram, term , token = "ngrams", n = 2)
+
+bigram_df$rank <- rank(-bigram_df$freq,ties.method="min")
+bigram_df <- bigram_df[order(bigram_df$rank,decreasing = F),]
+
+bigram_df15 <- head(bigram_df,15)
+head(bigram_df15,15)
+
+bigram_df15 <- bigram_df15[c("bigram","freq","rank")]
+#Bigram Plot
+ggplot(bigram_df15,  aes(reorder(bigram,freq), log(freq))) +
+ geom_bar(stat = "identity") + coord_flip() +
+ xlab("Bigrams") + ylab("Frequency") + ggtitle("Most frequent bigrams")
+
+#Bigram Plot ranking vs frequency on log scale
+
+ggplot(bigram_df15, aes(rank, log(freq))) + geom_point()+ geom_smooth(method="lm") +
+geom_text_repel(label = (bigram_df15$bigram)) 
+```
+
+####Plotting Bigrams / Trigrams for word frequency
+
+```{r Trigrams, warning= FALSE}
+#Trigram
+trigram_df <- freqterms_df %>%  unnest_tokens(trigram, term , token = "ngrams", n = 3)
+trigram_df <- trigram_df %>% arrange(desc(freq))
+
+trigram_df15 <- head(trigram_df,15)
+head(trigram_df15,15)
+
+# Trigram Plot 
+ggplot(trigram_df15, aes(reorder(trigram,freq), log(freq))) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Frequency") +
+  ggtitle("Most frequent Trigram")
+
+#Trigram Plot ranking vs frequency on log scale
+
+ggplot(trigram_df15, aes(rank, log(freq))) + geom_point() +
+  geom_smooth(method="lm") +geom_text_repel(label = (trigram_df15$trigram))
+```
+
+
+
+### Sentiments
+Let us know look at the sentiments of the tweets for delta airlines. It helps in 
+identifying the positive, negative and nuetral sentiment of the tweets.  
+
+### Retrieve Data for Delta airline
+```{r Delta Sentiment}
+delta <- delta_df
+delta <- droplevels(delta)
+
+
+delta_txt  <- delta$text
+
+delta_sentiment <- sentiment(delta_txt)
+
+# map values 
+delta_sentiment$score <- NA
+delta_sentiment$score[delta_sentiment$polarity == "positive"] <- 1
+delta_sentiment$score[delta_sentiment$polarity == "negative"] <- -1
+#delta_table <- table(delta_sentiment$polarity)
+ggplot(delta_sentiment, aes(x=polarity)) +
+  geom_bar(aes(y=..count.., fill=polarity)) +geom_text(stat='count',
+  aes(label=..count..),vjust=-0.2)+
+  scale_fill_brewer(palette="Dark2") +
+ labs(x="Polarity", y="Number of Tweets") +
+  ggtitle("Twitter Sentiment Analysis of Delta Airlines")+
+  theme(plot.title = element_text(hjust = 0.5))
+
+delta_sentiment$tweet_id <- delta$tweet_id
+
+delta_sentiment$freq <- str_count(delta_sentiment$text, '\\s+')+1
+colnames(delta_sentiment) <- paste("sentiment", colnames(delta_sentiment), sep = "_")
+delta_sentiment$tweet_id <- delta$tweet_id
+delta_sentiment$text <- delta$text
+
+delta_sentiment$airline <- 'Delta'
+delta_sentiment$code <- 'DL'
+colnames(delta_sentiment)
+
+
+
+
+```
+ 
+Delta has most of the tweets that are nuetral. The negative tweets are
+more than the positive tweets
+### Create  Vcorpus
+
+Creating and cleaning VCorpus to use unigrams, bigrams and trigrams for 
+Document Term Matrix.
+
+```{r VCorpus}
+
+dtm_corpus <- VCorpus(VectorSource(twitter_delta$text))
+
+# Remove Punctuations
+dtm_corpus<- tm_map(dtm_corpus,removePunctuation)
+
+#Remove URLs
+removeURL <- function(x) {
+  gsub("http[^[:space:]]*", "", x)
+}
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(removeURL))
+
+# Remove anything expect English and Space
+remove_others <- function(x) {
+  gsub("[^[:alpha:][:space:]]*","",x)
+}
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(remove_others))
+
+# Transform to lower case
+
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(tolower))
+
+# Remove Stopwords. 
+tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","Delta","Delta","Delta","airways","airlines","flight","pilot",
+ "virgin","US airways","southwest","a","the","is","and")),"use", "see", 
+ "used", "via", "amp","the","a","aa","aaaand","i","a","the",
+ "flight","airlines","flights","airway","will", "cant","and","is","can","im")
+dtm_corpus<- tm_map(dtm_corpus,removeWords,tweets_stopwords)
+
+# Remove WhiteSpace
+dtm_corpus<- tm_map(dtm_corpus,stripWhitespace)
+
+
+```
+
+### Create Document Term Matrix
+The  unigrams, bigrams and trigram of  document matrix can be 
+analyzed to examine most frequently occurring words. 
+
+#### Unigram of DTM 
+
+The unigram are single word phase from the document term matrix is created 
+and the sparse terms are removed. The tweet ID and the tweets are added to the 
+dataframe created . The term are placed across the columns and 
+their occurence across each tweet are indicated either 0 or 1. 
+
+```{r DTM Unigram}
+# Creating DTM
+unigram_dtm <- DocumentTermMatrix(dtm_corpus)
+
+# Inspecting the unigram DTM
+inspect(unigram_dtm[1:5,5:10])
+
+# Removing Sparseterms from the DTM 
+unigram_sparse <- removeSparseTerms(unigram_dtm,0.995)
+unigram_sparse
+
+unigram_df <- as.data.frame(as.matrix(unigram_sparse))
+colnames(unigram_df) <- paste("unigram_df.", colnames(unigram_df), sep = "_")
+colnames(unigram_df) <- make.names(colnames(unigram_df))
+
+unigram_df$tweet_id <- delta_df$tweet_id
+unigram_df$text <- delta_df$text
+dim(unigram_df)
+
+
+```
+
+#### Bigram of DTM 
+
+The bigrams are two word phase from the document term matrix is created 
+and the sparse terms are removed.
+
+```{r DTM Bigram}
+
+#Tokenizing
+BigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
+#BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=2, max=2))
+
+bigram_dtm <- DocumentTermMatrix(dtm_corpus, 
+                                 control=list(tokenize=BigramTokenizer))
+
+# Inspecting the bigram DTM
+inspect(bigram_dtm[1:5,5:10])
+
+# Removing Sparseterms from the DTM 
+bigram_sparse <- removeSparseTerms(bigram_dtm,0.995)
+bigram_sparse
+
+bigram_df <- as.data.frame(as.matrix(bigram_sparse))
+colnames(bigram_df) <- paste("bigram_df.", colnames(bigram_df), sep = "_")
+colnames(bigram_df) <- make.names(colnames(bigram_df))
+bigram_df$tweet_id <- delta_df$tweet_id
+bigram_df$text <- delta_df$text
+dim(bigram_df)
+
+```
+
+#### Trigram of DTM 
+
+The trigrams are three word phase from the document term matrix is created 
+and the sparse terms are removed.
+
+```{r DTM Trigram}
+
+#Tokenizing
+#TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=3, max=3))
+TrigramTokenizer <- function(x)  {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
+
+trigram_dtm <- DocumentTermMatrix(dtm_corpus, 
+                                  control=list(tokenize=TrigramTokenizer))
+
+# Inspecting the trigram DTM
+inspect(trigram_dtm[1:5,5:10])
+# Removing Sparseterms from the DTM 
+trigram_sparse <- removeSparseTerms(trigram_dtm,0.995)
+trigram_sparse
+
+trigram_df <- as.data.frame(as.matrix(trigram_sparse))
+colnames(trigram_df) <- paste("trigram_df.", colnames(trigram_df), sep = "_")
+colnames(trigram_df) <- make.names(colnames(trigram_df))
+trigram_df$tweet_id <- delta_df$tweet_id
+trigram_df$text <- delta_df$text
+dim(trigram_df)
+#head(trigram_df,5)
+#write.csv(trigram_df, file.path(data_dir,"Delta_Trigram.csv"))
+
+
+```
+### Preparing for the model
+
+Combining the unigram, bigrams, trigrams and sentiment into one dataframe 
+for modelling
+```{r}
+
+tweets_unibigram <- full_join(unigram_df, 
+                              bigram_df, by = c("tweet_id", "text"))
+ 
+tweets_unibitrigram <- full_join(tweets_unibigram,trigram_df,
+                                 by = c("tweet_id","text"))
+
+tweets_model <- full_join(tweets_unibitrigram,delta_sentiment, 
+                          by = c("tweet_id","text")) 
+
+#write.csv(tweets_model, file.path(data_dir,"Delete.csv"))
+dim(tweets_model)
+```

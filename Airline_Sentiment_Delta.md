@@ -1,6 +1,6 @@
 Airline Sentiment
 ================
-2017-11-24
+2017-12-30
 
 ### Introduction
 
@@ -50,6 +50,9 @@ library(ggplot2)
 library(magrittr)
 library(tidytext)
 library(ggrepel)
+library(stringr)
+dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+require(rJava)
 ```
 
 ### Structure of the dataset
@@ -368,11 +371,9 @@ Plotting the frequency of top 50 words in the logarithmic scale.
 # Word frequency on log scale
 
 freq_terms20 <- head(freqterms_df,20)
-ggplot(freq_terms20, aes(rank, log(freq))) + geom_point()+  geom_smooth() +
+ggplot(freq_terms20, aes(rank, log(freq))) + geom_point()+  geom_smooth(method="lm") +
 geom_text_repel(label = rownames(freq_terms20)) 
 ```
-
-    ## `geom_smooth()` using method = 'loess'
 
 ![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Log%20of%20frequency%20plot%20-1.png)
 
@@ -414,7 +415,7 @@ head(bigram_df15,15)
 ``` r
 bigram_df15 <- bigram_df15[c("bigram","freq","rank")]
 #Bigram Plot
-ggplot(bigram_df15,  aes(reorder(bigram,freq), log10(freq))) +
+ggplot(bigram_df15,  aes(reorder(bigram,freq), log(freq))) +
  geom_bar(stat = "identity") + coord_flip() +
  xlab("Bigrams") + ylab("Frequency") + ggtitle("Most frequent bigrams")
 ```
@@ -424,11 +425,9 @@ ggplot(bigram_df15,  aes(reorder(bigram,freq), log10(freq))) +
 ``` r
 #Bigram Plot ranking vs frequency on log scale
 
-ggplot(bigram_df15, aes(rank, log(freq))) + geom_point()+ geom_smooth() +
+ggplot(bigram_df15, aes(rank, log(freq))) + geom_point()+ geom_smooth(method="lm") +
 geom_text_repel(label = (bigram_df15$bigram)) 
 ```
-
-    ## `geom_smooth()` using method = 'loess'
 
 ![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Bigrams-2.png)
 
@@ -464,7 +463,7 @@ head(trigram_df15,15)
 
 ``` r
 # Trigram Plot 
-ggplot(trigram_df15, aes(reorder(trigram,freq), log10(freq))) +
+ggplot(trigram_df15, aes(reorder(trigram,freq), log(freq))) +
   geom_bar(stat = "identity") + coord_flip() +
   xlab("Trigrams") + ylab("Frequency") +
   ggtitle("Most frequent Trigram")
@@ -476,10 +475,8 @@ ggplot(trigram_df15, aes(reorder(trigram,freq), log10(freq))) +
 #Trigram Plot ranking vs frequency on log scale
 
 ggplot(trigram_df15, aes(rank, log(freq))) + geom_point() +
-  geom_smooth() +geom_text_repel(label = (trigram_df15$trigram))
+  geom_smooth(method="lm") +geom_text_repel(label = (trigram_df15$trigram))
 ```
-
-    ## `geom_smooth()` using method = 'loess'
 
 ![](Airline_Sentiment_Delta_files/figure-markdown_github-ascii_identifiers/Trigrams-2.png)
 
@@ -517,12 +514,250 @@ ggplot(delta_sentiment, aes(x=polarity)) +
 ``` r
 delta_sentiment$tweet_id <- delta$tweet_id
 
+delta_sentiment$freq <- str_count(delta_sentiment$text, '\\s+')+1
+colnames(delta_sentiment) <- paste("sentiment", colnames(delta_sentiment), sep = "_")
+delta_sentiment$tweet_id <- delta$tweet_id
+delta_sentiment$text <- delta$text
+
 delta_sentiment$airline <- 'Delta'
 delta_sentiment$code <- 'DL'
 colnames(delta_sentiment)
 ```
 
-    ## [1] "text"     "polarity" "language" "score"    "tweet_id" "airline" 
-    ## [7] "code"
+    ##  [1] "sentiment_text"     "sentiment_polarity" "sentiment_language"
+    ##  [4] "sentiment_score"    "sentiment_tweet_id" "sentiment_freq"    
+    ##  [7] "tweet_id"           "text"               "airline"           
+    ## [10] "code"
 
-Delta has most of the tweets that are nuetral. The negative tweets are more than the positive tweets
+Delta has most of the tweets that are nuetral. The negative tweets are more than the positive tweets \#\#\# Create Vcorpus
+
+Creating and cleaning VCorpus to use unigrams, bigrams and trigrams for Document Term Matrix.
+
+``` r
+dtm_corpus <- VCorpus(VectorSource(twitter_delta$text))
+
+# Remove Punctuations
+dtm_corpus<- tm_map(dtm_corpus,removePunctuation)
+
+#Remove URLs
+removeURL <- function(x) {
+  gsub("http[^[:space:]]*", "", x)
+}
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(removeURL))
+
+# Remove anything expect English and Space
+remove_others <- function(x) {
+  gsub("[^[:alpha:][:space:]]*","",x)
+}
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(remove_others))
+
+# Transform to lower case
+
+dtm_corpus<- tm_map(dtm_corpus,content_transformer(tolower))
+
+# Remove Stopwords. 
+tweets_stopwords <- c(setdiff(stopwords('english'), c("r", "big","Delta","Delta","Delta","airways","airlines","flight","pilot",
+ "virgin","US airways","southwest","a","the","is","and")),"use", "see", 
+ "used", "via", "amp","the","a","aa","aaaand","i","a","the",
+ "flight","airlines","flights","airway","will", "cant","and","is","can","im")
+dtm_corpus<- tm_map(dtm_corpus,removeWords,tweets_stopwords)
+
+# Remove WhiteSpace
+dtm_corpus<- tm_map(dtm_corpus,stripWhitespace)
+```
+
+### Create Document Term Matrix
+
+The unigrams, bigrams and trigram of document matrix can be analyzed to examine most frequently occurring words.
+
+#### Unigram of DTM
+
+The unigram are single word phase from the document term matrix is created and the sparse terms are removed. The tweet ID and the tweets are added to the dataframe created . The term are placed across the columns and their occurence across each tweet are indicated either 0 or 1.
+
+``` r
+# Creating DTM
+unigram_dtm <- DocumentTermMatrix(dtm_corpus)
+
+# Inspecting the unigram DTM
+inspect(unigram_dtm[1:5,5:10])
+```
+
+    ## <<DocumentTermMatrix (documents: 5, terms: 6)>>
+    ## Non-/sparse entries: 0/30
+    ## Sparsity           : 100%
+    ## Maximal term length: 10
+    ## Weighting          : term frequency (tf)
+    ## Sample             :
+    ##     Terms
+    ## Docs abducted able aboard abq absolute absolutely
+    ##    1        0    0      0   0        0          0
+    ##    2        0    0      0   0        0          0
+    ##    3        0    0      0   0        0          0
+    ##    4        0    0      0   0        0          0
+    ##    5        0    0      0   0        0          0
+
+``` r
+# Removing Sparseterms from the DTM 
+unigram_sparse <- removeSparseTerms(unigram_dtm,0.995)
+unigram_sparse
+```
+
+    ## <<DocumentTermMatrix (documents: 2222, terms: 274)>>
+    ## Non-/sparse entries: 8158/600670
+    ## Sparsity           : 99%
+    ## Maximal term length: 15
+    ## Weighting          : term frequency (tf)
+
+``` r
+unigram_df <- as.data.frame(as.matrix(unigram_sparse))
+colnames(unigram_df) <- paste("unigram_df.", colnames(unigram_df), sep = "_")
+colnames(unigram_df) <- make.names(colnames(unigram_df))
+
+unigram_df$tweet_id <- delta_df$tweet_id
+unigram_df$text <- delta_df$text
+dim(unigram_df)
+```
+
+    ## [1] 2222  276
+
+#### Bigram of DTM
+
+The bigrams are two word phase from the document term matrix is created and the sparse terms are removed.
+
+``` r
+#Tokenizing
+BigramTokenizer <- function(x) {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
+#BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=2, max=2))
+
+bigram_dtm <- DocumentTermMatrix(dtm_corpus, 
+                                 control=list(tokenize=BigramTokenizer))
+
+# Inspecting the bigram DTM
+inspect(bigram_dtm[1:5,5:10])
+```
+
+    ## <<DocumentTermMatrix (documents: 5, terms: 6)>>
+    ## Non-/sparse entries: 0/30
+    ## Sparsity           : 100%
+    ## Maximal term length: 20
+    ## Weighting          : term frequency (tf)
+    ## Sample             :
+    ##     Terms
+    ## Docs abc oh abc thats abcnetwork kgonzales abcnetwork please
+    ##    1      0         0                    0                 0
+    ##    2      0         0                    0                 0
+    ##    3      0         0                    0                 0
+    ##    4      0         0                    0                 0
+    ##    5      0         0                    0                 0
+    ##     Terms
+    ## Docs abducted children able access
+    ##    1                 0           0
+    ##    2                 0           0
+    ##    3                 0           0
+    ##    4                 0           0
+    ##    5                 0           0
+
+``` r
+# Removing Sparseterms from the DTM 
+bigram_sparse <- removeSparseTerms(bigram_dtm,0.995)
+bigram_sparse
+```
+
+    ## <<DocumentTermMatrix (documents: 2222, terms: 16)>>
+    ## Non-/sparse entries: 586/34966
+    ## Sparsity           : 98%
+    ## Maximal term length: 19
+    ## Weighting          : term frequency (tf)
+
+``` r
+bigram_df <- as.data.frame(as.matrix(bigram_sparse))
+colnames(bigram_df) <- paste("bigram_df.", colnames(bigram_df), sep = "_")
+colnames(bigram_df) <- make.names(colnames(bigram_df))
+bigram_df$tweet_id <- delta_df$tweet_id
+bigram_df$text <- delta_df$text
+dim(bigram_df)
+```
+
+    ## [1] 2222   18
+
+#### Trigram of DTM
+
+The trigrams are three word phase from the document term matrix is created and the sparse terms are removed.
+
+``` r
+#Tokenizing
+#TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=3, max=3))
+TrigramTokenizer <- function(x)  {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
+
+trigram_dtm <- DocumentTermMatrix(dtm_corpus, 
+                                  control=list(tokenize=TrigramTokenizer))
+
+# Inspecting the trigram DTM
+inspect(trigram_dtm[1:5,5:10])
+```
+
+    ## <<DocumentTermMatrix (documents: 5, terms: 6)>>
+    ## Non-/sparse entries: 0/30
+    ## Sparsity           : 100%
+    ## Maximal term length: 29
+    ## Weighting          : term frequency (tf)
+    ## Sample             :
+    ##     Terms
+    ## Docs abc thats silly abcnetwork kgonzales supposed abcnetwork please give
+    ##    1               0                             0                      0
+    ##    2               0                             0                      0
+    ##    3               0                             0                      0
+    ##    4               0                             0                      0
+    ##    5               0                             0                      0
+    ##     Terms
+    ## Docs abducted children returning able access using able anything improve
+    ##    1                           0                 0                     0
+    ##    2                           0                 0                     0
+    ##    3                           0                 0                     0
+    ##    4                           0                 0                     0
+    ##    5                           0                 0                     0
+
+``` r
+# Removing Sparseterms from the DTM 
+trigram_sparse <- removeSparseTerms(trigram_dtm,0.995)
+trigram_sparse
+```
+
+    ## <<DocumentTermMatrix (documents: 2222, terms: 7)>>
+    ## Non-/sparse entries: 259/15295
+    ## Sparsity           : 98%
+    ## Maximal term length: 26
+    ## Weighting          : term frequency (tf)
+
+``` r
+trigram_df <- as.data.frame(as.matrix(trigram_sparse))
+colnames(trigram_df) <- paste("trigram_df.", colnames(trigram_df), sep = "_")
+colnames(trigram_df) <- make.names(colnames(trigram_df))
+trigram_df$tweet_id <- delta_df$tweet_id
+trigram_df$text <- delta_df$text
+dim(trigram_df)
+```
+
+    ## [1] 2222    9
+
+``` r
+#head(trigram_df,5)
+#write.csv(trigram_df, file.path(data_dir,"Delta_Trigram.csv"))
+```
+
+### Preparing for the model
+
+Combining the unigram, bigrams, trigrams and sentiment into one dataframe for modelling
+
+``` r
+tweets_unibigram <- full_join(unigram_df, 
+                              bigram_df, by = c("tweet_id", "text"))
+ 
+tweets_unibitrigram <- full_join(tweets_unibigram,trigram_df,
+                                 by = c("tweet_id","text"))
+
+tweets_model <- full_join(tweets_unibitrigram,delta_sentiment, 
+                          by = c("tweet_id","text")) 
+
+#write.csv(tweets_model, file.path(data_dir,"Delete.csv"))
+```
