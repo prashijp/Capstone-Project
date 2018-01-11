@@ -29,8 +29,8 @@ colnames(twitter_airline)
 Loading the libraries required for sentiment analysis.
 
 ```{r Library Load,results='hide', message=FALSE, cache=FALSE, warning=F}
-options(java.parameters = "-Xmx4g")
-options(mc.cores=1)
+#options(java.parameters = "-Xmx4g")
+#options(mc.cores=1)
 library(tm)
 library(dplyr)
 library(plyr)
@@ -42,10 +42,10 @@ library(magrittr)
 library(tidytext)
 library(ggrepel)
 library(stringr)
-dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
-require(rJava)
+#dyn.load('/Library/Java/JavaVirtualMachines/jdk1.8.0_66.jdk/Contents/Home/jre/lib/server/libjvm.dylib')
+#require(rJava)
 #library(rJava)
-library(RWeka)
+#library(RWeka)
 library(slam)
 ```
 
@@ -396,10 +396,10 @@ and the sparse terms are removed.
 ```{r DTM Bigram}
 
 #Tokenizing
-BigramTokenizer <- function(x) 
-  {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
+#BigramTokenizer <- function(x) 
+ # {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 2, max = 2))}
 #BigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=2, max=2))
-
+BigramTokenizer <-function(x) unlist(lapply(ngrams(words(x), 2), paste, collapse = " "), use.names = FALSE)
 bigram_dtm <- DocumentTermMatrix(dtm_corpus, 
                                  control=list(tokenize=BigramTokenizer))
 
@@ -428,8 +428,8 @@ and the sparse terms are removed.
 
 #Tokenizing
 #TrigramTokenizer <- function(x) NGramTokenizer(x, Weka_control(min=3, max=3))
-TrigramTokenizer <- function(x)  {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
-
+#TrigramTokenizer <- function(x)  {RWeka::NGramTokenizer(x, RWeka::Weka_control(min = 3, max = 3))}
+TrigramTokenizer <-function(x) unlist(lapply(ngrams(words(x), 3), paste, collapse = " "), use.names = FALSE)
 trigram_dtm <- DocumentTermMatrix(dtm_corpus, 
                                   control=list(tokenize=TrigramTokenizer))
 
@@ -475,6 +475,6 @@ tweets_unibitrigram <- full_join(tweets_unibigram,trigram_df,
 tweets_model <- full_join(delta_sentiment,tweets_unibitrigram,
                                  by = c("tweet_id","text")) 
 
-write.csv(tweets_model, file.path(data_dir,"Delete.csv"))
+#write.csv(tweets_model, file.path(data_dir,"Delete.csv"))
 
 ```
