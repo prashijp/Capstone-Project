@@ -1,8 +1,8 @@
 # Objective: 
-Comparing US based airlines performance using twitter sentimental analysis. The sentiment analysis will be performed on each of the airlines seperately and also on the entire dataset. 
+Comparing US based airlines tweets using twitter sentimental analysis. The sentiment analysis will be performed on each of the airlines seperately and also on the entire dataset. 
 
 # Project Problem:
-Analyzing the US based airlines performances by analyzing the the tweets of the airlines.Identifying the sentiments of tweets and classifying them as nuetral,negative and positive sentiment for each airlines. Then tokenizing the tweets as unigrams,bigrams and trigrams and finding their significance on the sentiments. 
+Analyzing the US based airlines's tweets by using sentiment analysis on the tweets of the airlines and classifying them as nuetral,negative and positive sentiment for each airlines. Then tokenizing the tweets as unigrams,bigrams and trigrams and finding their significance on the sentiments. 
 
 # Dataset: 
 Data is obtained from the airline sentiment dataset from Kaggle https://www.kaggle.com/crowdflower/twitter-airline-sentiment
