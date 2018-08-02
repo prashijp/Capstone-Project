@@ -41,6 +41,8 @@ twitter_airline$text <- gsub("@VirginAmerica","",gsub("@AmericanAir","",
 
 Here we convert the text into a word corpus using the function VectorSource. A word corpus enables us to eliminate common words using the text mining package tm. Removing the corpus specific stopwords lets us focus on the important words. The puncutations, URLs, anything except english/space and extra white space is removed. The corpus is converted to lower case
 
+#### Initial Corpus
+
     ## <<SimpleCorpus>>
     ## Metadata:  corpus specific: 1, document level (indexed): 0
     ## Content:  documents: 5
@@ -51,15 +53,7 @@ Here we convert the text into a word corpus using the function VectorSource. A w
     ## [4]  it's really aggressive to blast obnoxious "entertainment" in your guests' faces &amp; they have little recourse
     ## [5]  and it's a really big bad thing about it
 
-    ## <<SimpleCorpus>>
-    ## Metadata:  corpus specific: 1, document level (indexed): 0
-    ## Content:  documents: 5
-    ## 
-    ## [1]   dhepburn said                                                                     
-    ## [2]  plus youve added commercials   experience tacky                                    
-    ## [3]   didnt today must mean  need  take another trip                                    
-    ## [4]   really aggressive  blast obnoxious entertainment   guests faces    little recourse
-    ## [5]     really big bad thing
+#### Final Corpus
 
     ## <<SimpleCorpus>>
     ## Metadata:  corpus specific: 1, document level (indexed): 0
@@ -164,19 +158,19 @@ ROC curves are plotted for the all the cross validated models to check the signi
 
     ## [1] "AUC of Unigram Positive"
 
-    ## [1] 0.7256763
+    ## [1] 0.7304781
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-1.png)
 
     ## [1] "AUC of Bigram Positive"
 
-    ## [1] 0.7179339
+    ## [1] 0.7162821
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-2.png)
 
     ## [1] "AUC of Trigram Positive"
 
-    ## [1] 0.7178556
+    ## [1] 0.7270607
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-3.png)
 
@@ -186,25 +180,25 @@ cross validation is performed using Naive Bayes with entire training dataset on 
 
     ## [1] "AUC of Bigram Positive"
 
-    ## [1] 0.7991723
+    ## [1] 0.8071543
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-1.png)
 
     ## [1] "AUC PR of Bigram Positive"
 
-    ## [1] 0.791645
+    ## [1] 0.7994873
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-2.png)
 
     ## [1] "AUC of Trigam Positive"
 
-    ## [1] 0.770367
+    ## [1] 0.77943
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-3.png)
 
     ## [1] "AUC PR of Trigram Positive"
 
-    ## [1] 0.7120925
+    ## [1] 0.7185123
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-4.png)
 
@@ -216,13 +210,13 @@ Cross validation is performed using Naive Bayes with entire test dataset on all 
 
     ## [1] "AUC of Bigram Positive"
 
-    ## [1] 0.7443438
+    ## [1] 0.74943
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-1.png)
 
     ## [1] "AUC PR of Bigram Positive"
 
-    ## [1] 0.1282897
+    ## [1] 0.1342087
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-2.png)
 
@@ -242,4 +236,4 @@ The bigram positive model was the best performing model on the entire testing da
 
 3.Stemming could have provided better insights by reducing the repetition of terms
 
-Note : The sentiment analysis for individual airlines and code can be found \[here\] (<https://github.com/prashijp/Capstone-Project>)
+Note : The sentiment analysis for individual airlines and code can be found at <https://github.com/prashijp/Capstone-Project>
