@@ -1,6 +1,6 @@
 All Airlines Sentiment
 ================
-2018-07-31
+2018-08-01
 
 ### Introduction
 
@@ -137,7 +137,7 @@ Creating a dataframe test\_unigram,test\_bigram, test\_trigram which includes tw
 
 ### Data Split and Mapping Values for training / test datset
 
-Dataset is split using createDataPartition from the caret package. The dataset is split into 70:30 ratio.Mapping the values for training dataset and creating dataframe for all the unigrams/bigrams/trigrams for positive/neutral/negative sentiment. SMOTE function is used to balance the dataset.
+Dataset is split using createDataPartition from the caret package. The dataset is split into 70:30 ratio.Mapping the values for training and testing dataset and creating dataframe for all the unigrams/bigrams/trigrams for positive/neutral/negative sentiment. SMOTE function is used to balance the training dataset.
 
 ``` r
 ## split training data into train batch and test batch
@@ -152,144 +152,6 @@ test_batch <- test_df2[-training_rows, ]
 train_control <- trainControl(method = "repeatedcv", repeats = 5,
                         summaryFunction = twoClassSummary,
                         classProbs = TRUE)
-
-
-#Converting the dependent variable into factor 
-train_batch$Is_Positive <- as.factor(train_batch$Is_Positive)
-train_batch$Is_Negative <- as.factor(train_batch$Is_Negative)
-train_batch$Is_Neutral <- as.factor(train_batch$Is_Neutral)
-
-train_unigram <- select(train_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                          starts_with("unigram"))
-
-
-train_unigram_pos <- SMOTE(Is_Positive ~ . -Is_Negative-Is_Neutral, 
-                           data =  train_unigram,perc.over=100,perc.under=200)
-train_unigram_neg <- SMOTE(Is_Negative ~ .-Is_Positive-Is_Neutral, 
-                           data = train_unigram, perc.over=100,perc.under=200)
-train_unigram_neu <- SMOTE(Is_Neutral ~ . -Is_Positive-Is_Negative,
-                           data = train_unigram,perc.over=100,perc.under=200)
-
-
-train_bigram <- select(train_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                          starts_with("bigram"))
-train_bigram_pos <- SMOTE(Is_Positive ~ . -Is_Negative-Is_Neutral,
-                          data =  train_bigram,perc.over=100,perc.under=200)
-train_bigram_neg <- SMOTE(Is_Negative ~ .-Is_Positive-Is_Neutral, 
-                         data =  train_bigram,perc.over=100,perc.under=200)
-train_bigram_neu <- SMOTE(Is_Neutral ~  . -Is_Positive-Is_Negative, 
-                         data =  train_bigram,perc.over=100,perc.under=200)
-
-
-
-train_trigram <-select(train_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                           starts_with("trigram"))
-
-train_trigram_pos <- SMOTE(Is_Positive ~ . -Is_Negative-Is_Neutral,
-                          data =  train_trigram,perc.over=100,perc.under=200)
-train_trigram_neg <- SMOTE(Is_Negative ~ .-Is_Positive-Is_Neutral, 
-                         data =  train_trigram,perc.over=100,perc.under=200)
-train_trigram_neu <- SMOTE(Is_Neutral ~  . -Is_Positive-Is_Negative, 
-                         data =  train_trigram,perc.over=100,perc.under=200)
-
-
-#Mapping unigrams
-train_unigram_pos <- train_unigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-train_unigram_neg <- train_unigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-train_unigram_neu <- train_unigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
-
-#Mapping bigrams
-train_bigram_pos <- train_bigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-train_bigram_neg <- train_bigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-train_bigram_neu <- train_bigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
-
-#Mapping trigrams
-train_trigram_pos <- train_trigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-train_trigram_neg <- train_trigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-train_trigram_neu <- train_trigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
-```
-
-### Mapping Values for test dataset
-
-Mapping the values for test dataset and creating dataframe for all the unigrams/bigrams/trigrams for positive/neutral/negative sentiment.
-
-``` r
-test_batch$Is_Positive <- as.factor(test_batch$Is_Positive)
-test_batch$Is_Negative <- as.factor(test_batch$Is_Negative)
-test_batch$Is_Neutral <- as.factor(test_batch$Is_Neutral)
-
-pred_unigram <- select(test_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                          starts_with("unigram"))
-pred_unigram_pos <- pred_unigram[-c(5,6)]
-pred_unigram_neg <- pred_unigram[-c(4,6)]
-pred_unigram_neu <- pred_unigram[-c(4,5)]
-
-pred_bigram <- select(test_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                          starts_with("bigram"))
-
-pred_bigram_pos <- pred_bigram[-c(5,6)]
-pred_bigram_neg <- pred_bigram[-c(4,6)]
-pred_bigram_neu <- pred_bigram[-c(4,5)]
-
-  
-pred_trigram <-select(test_batch,tweetreason, timezone,
-                           sentiment_freq,Is_Positive,Is_Negative,Is_Neutral,
-                           starts_with("trigram"))
-
-pred_trigram_pos <- pred_trigram[-c(5,6)]
-pred_trigram_neg <- pred_trigram[-c(4,6)]
-pred_trigram_neu <- pred_trigram[-c(4,5)]
-
-
-#Mapping unigrams
-pred_unigram_pos <- pred_unigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-pred_unigram_neg <- pred_unigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-pred_unigram_neu <- pred_unigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
-
-#Mapping bigrams
-pred_bigram_pos <- pred_bigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-pred_bigram_neg <- pred_bigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-pred_bigram_neu <- pred_bigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
-
-#Mapping trigrams
-pred_trigram_pos <- pred_trigram_pos %>% mutate(Is_Positive  = 
-                    ifelse(Is_Positive == "1", "Positive","NotPostitive"))
-
-pred_trigram_neg <- pred_trigram_neg %>% mutate(Is_Negative  = 
-                    ifelse(Is_Negative == "1", "Negative","NotNegative"))
-
-pred_trigram_neu <- pred_trigram_neu %>% mutate(Is_Neutral  = 
-                    ifelse(Is_Neutral == "1", "Neutral","NotNeutral"))
 ```
 
 ### Cross Validation and Bootstrapping for Logistics Regression for tweet reason
@@ -298,157 +160,71 @@ Sentiment variables are converted into factors for all the dataframe and cross v
 
 ### ROC curve for Logistic Regression
 
-ROC curves are plotted for the all the cross validated models to check the significance of tweetreason on sentiments for all the dataframe. P & N values describe the number of positives and negative in the model
+ROC curves are plotted for the all the cross validated models to check the significance of tweetreason on sentiments for all the dataframe. P & N values describe the number of positives and negative in the model. ROC curves with AUC more than 0.5 is displayed
 
     ## [1] "AUC of Unigram Positive"
 
-    ## [1] 0.7236629
+    ## [1] 0.7256763
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-1.png)
 
-    ## [1] "AUC of Unigram Negative"
+    ## [1] "AUC of Bigram Positive"
 
-    ## [1] 0.3347937
+    ## [1] 0.7179339
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-2.png)
 
-    ## [1] "AUC of Unigram Neutral"
+    ## [1] "AUC of Trigram Positive"
 
-    ## [1] 0.4158115
+    ## [1] 0.7178556
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-3.png)
 
-    ## [1] "AUC of Bigram Positive"
-
-    ## [1] 0.7110709
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-4.png)
-
-    ## [1] "AUC of Bigram Negative"
-
-    ## [1] 0.3313562
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-5.png)
-
-    ## [1] "AUC of Bigram Neutral"
-
-    ## [1] 0.4075235
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-6.png)
-
-    ## [1] "AUC of Trigram Positive"
-
-    ## [1] 0.7110748
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-7.png)
-
-    ## [1] "AUC of Trigram Negative"
-
-    ## [1] 0.3326861
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-8.png)
-
-    ## [1] "AUC of Trigram Neutral"
-
-    ## [1] 0.4460098
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curve%20for%20Logistic%20Regression-9.png)
-
 ### Cross Validation and ROC curves for Naive Bayes for entire training dataset
 
-cross validation is performed using Naive Bayes with entire training dataset on all the sentiment for unigram/bigram/trigram. timezone is excluded as it had zero variances. ROC curves are plotted for executed cross validated models to check the significance of entire variables on sentiments for unigram/bigram/trigram. P & N values describe the number of positives and negative in the model
+cross validation is performed using Naive Bayes with entire training dataset on all the sentiment for unigram/bigram/trigram. timezone is excluded as it had zero variances. ROC curves are plotted for executed cross validated models to check the significance of entire variables on sentiments for unigram/bigram/trigram. P & N values describe the number of positives and negative in the model. ROC curves with AUC more than 0.5 is displayed
 
-### ROC Curves for Entire training dataset models
+    ## [1] "AUC of Bigram Positive"
 
-ROC curves are plotted for executed cross validated models to check the significance of entire variables on sentiments for unigram/bigram/trigram. P & N values describe the number of positives and negative in the model
-
-    ## [1] "AUC of Unigram Positive"
-
-    ## [1] 0.5
+    ## [1] 0.7991723
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-1.png)
 
-    ## [1] "AUC PR of Unigram Positive"
+    ## [1] "AUC PR of Bigram Positive"
 
-    ## [1] 0.5
+    ## [1] 0.791645
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-2.png)
 
-    ## [1] "AUC of Bigram Positive"
+    ## [1] "AUC of Trigam Positive"
 
-    ## [1] 0.8018035
+    ## [1] 0.770367
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-3.png)
 
-    ## [1] "AUC PR of Bigram Positive"
+    ## [1] "AUC PR of Trigram Positive"
 
-    ## [1] 0.8009154
+    ## [1] 0.7120925
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-4.png)
 
-    ## [1] "AUC of Bigram Neutral"
-
-    ## [1] 0.1148851
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-5.png)
-
-    ## [1] "AUC PR of Bigram Neutral"
-
-    ## [1] 0.3218875
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-6.png)
-
-    ## [1] "AUC of Trigam Positive"
-
-    ## [1] 0.763148
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-7.png)
-
-    ## [1] "AUC PR of Trigram Positive"
-
-    ## [1] 0.7037205
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20curves%20for%20entire%20training%20dataset-8.png) The model with the best performance was a bigram positive and trigram positive model for the entire training dataset
+The model with the best performance was a bigram positive and trigram positive model for the entire training dataset
 
 ### Cross Validation and ROC curves for Naive Bayes for entire testing dataset
 
-Cross validation is performed using Naive Bayes with entire test dataset on all the sentiment for unigram/bigram/trigram. timezone is excluded as it had zero variances.ROC curves are plotted for executed cross validated models to check the significance of entire variables on sentiments for unigram/bigram/trigram.P & N values describe the number of positives and negative in the model
+Cross validation is performed using Naive Bayes with entire test dataset on all the sentiment for unigram/bigram/trigram. timezone is excluded as it had zero variances.ROC curves are plotted for executed cross validated models to check the significance of entire variables on sentiments for unigram/bigram/trigram.P & N values describe the number of positives and negative in the model.ROC curves with AUC more than 0.5 is displayed
 
     ## [1] "AUC of Bigram Positive"
 
-    ## [1] 0.7336733
+    ## [1] 0.7443438
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-1.png)
 
     ## [1] "AUC PR of Bigram Positive"
 
-    ## [1] 0.1176663
+    ## [1] 0.1282897
 
 ![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-2.png)
-
-    ## [1] "AUC of Bigram Negative"
-
-    ## [1] 0.1990878
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-3.png)
-
-    ## [1] "AUC PR of Bigram Negative"
-
-    ## [1] 0.6001631
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-4.png)
-
-    ## [1] "AUC of Trigram Negative"
-
-    ## [1] 0.2218053
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-5.png)
-
-    ## [1] "AUC PR of Trigram Negative"
-
-    ## [1] 0.6144623
-
-![](Final_Project_Submission__files/figure-markdown_github/ROC%20Curve%20for%20test%20dataset-6.png)
 
 The bigram positive model was the best performing model on the entire testing dataset.
 
@@ -465,3 +241,5 @@ The bigram positive model was the best performing model on the entire testing da
 2.Sentiment analysis can be further expalined to classify the sentiment of the tweers into more categories to provide deeper understanding of customer sentiments.
 
 3.Stemming could have provided better insights by reducing the repetition of terms
+
+Note : The sentiment analysis for individual airlines and code can be found \[here\] (<https://github.com/prashijp/Capstone-Project>)
